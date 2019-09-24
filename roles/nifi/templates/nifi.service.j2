@@ -1,0 +1,16 @@
+[Unit]
+Description=Apache NiFi
+Documentation=https://nifi.apache.org/docs.html
+After=network.target remote-fs.target
+
+[Service]
+Type=forking
+User={{ ansible_user }}
+Group={{ ansible_user }}
+Environment=JAVA_HOME=/usr/lib/jvm/java
+ExecStart={{ nifi.install_dir }}/{{ nifi.service_name }}-{{ nifi.version }}/bin/{{ nifi.service_name }}.sh start
+ExecStop={{ nifi.install_dir }}/{{ nifi.service_name }}-{{ nifi.version }}/bin/{{ nifi.service_name }}.sh stop
+ExecReload={{ nifi.install_dir }}/{{ nifi.service_name }}-{{ nifi.version }}/bin/{{ nifi.service_name }}.sh reload
+
+[Install]
+WantedBy=multi-user.target

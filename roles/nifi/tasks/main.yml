@@ -1,0 +1,7 @@
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
+#
+# nifi provisioning
+---
+- import_tasks: install-nifi.yml
+- import_tasks: configure-nifi.yml

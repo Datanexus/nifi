@@ -1,0 +1,118 @@
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
+#
+---
+# this play needs to be first to handle variable expansion
+- import_tasks: tune.yml
+
+- import_tasks: interface-facts.yml
+
+- set_fact:
+    nifi_user: "{{ ansible_user }}"  
+- set_fact:
+    nifi_group: "{{ ansible_user }}"
+
+- block:
+  
+  - name: NIFI OVERLAY (NIFI) | tuning nifi for {{ jvm_heap_mem }}g maximum memory
+    lineinfile:
+      path: "{{ nifi.install_dir }}/{{ nifi.service_name }}-{{ nifi.version }}/{{ nifi.bootstrap_file }}"
+      regexp: '^run.as='
+      line: "run.as={{ nifi_user }}"
+    notify: restart nifi
+    
+  - name: NIFI OVERLAY (NIFI) | tuning nifi for {{ jvm_heap_mem }}g maximum memory
+    lineinfile:
+      path: "{{ nifi.install_dir }}/{{ nifi.service_name }}-{{ nifi.version }}/{{ nifi.bootstrap_file }}"
+      regexp: '^java.arg.3=-Xmx'
+      line: "java.arg.3=-Xmx{{ jvm_heap_mem }}g"
+    notify: restart nifi
+    
+  - name: NIFI OVERLAY (NIFI) | configuring web http address
+    lineinfile:
+      path: "{{ nifi.install_dir }}/{{ nifi.service_name }}-{{ nifi.version }}/{{ nifi.config_file }}"
+      regexp: '^nifi.web.http.host='
+      line: "nifi.web.http.host={{ nifi_interface_ipv4 }}"
+    notify: restart nifi
+    
+  - name: NIFI OVERLAY (NIFI) | configuring nifi port on {{ nifi.config.port }}
+    lineinfile:
+      path: "{{ nifi.install_dir }}/{{ nifi.service_name }}-{{ nifi.version }}/{{ nifi.config_file }}"
+      regexp: '^nifi.web.http.port='
+      line: "nifi.web.http.port={{ nifi.config.port }}"
+    notify: restart nifi
+  
+  - name: NIFI OVERLAY (NIFI) | configuring clustered mode to true
+    lineinfile:
+      path: "{{ nifi.install_dir }}/{{ nifi.service_name }}-{{ nifi.version }}/{{ nifi.config_file }}"
+      regexp: '^nifi.cluster.is.node='
+      line: "nifi.cluster.is.node=true"
+    notify: restart nifi
+    
+  - name: NIFI OVERLAY (NIFI) | configuring nifi local address
+    lineinfile:
+      path: "{{ nifi.install_dir }}/{{ nifi.service_name }}-{{ nifi.version }}/{{ nifi.config_file }}"
+      regexp: '^nifi.cluster.node.address='
+      line: "nifi.cluster.node.address={{ nifi_interface_ipv4 }}"
+    notify: restart nifi
+  
+  - name: NIFI OVERLAY (NIFI) | configuring local address
+    lineinfile:
+      path: "{{ nifi.install_dir }}/{{ nifi.service_name }}-{{ nifi.version }}/{{ nifi.config_file }}"
+      regexp: '^nifi.cluster.node.protocol.port='
+      line: "nifi.cluster.node.protocol.port={{ nifi.config.cluster_protocol_port }}"
+    notify: restart nifi
+  
+  - set_fact:
+      dn_threads: "{{ nifi.config.threads }}"
+    when: nifi.config.threads
+      
+  - name: NIFI OVERLAY (NIFI) | configuring threads to {{ dn_threads | default(10) }}
+    lineinfile:
+      path: "{{ nifi.install_dir }}/{{ nifi.service_name }}-{{ nifi.version }}/{{ nifi.config_file }}"
+      regexp: '^nifi.cluster.node.protocol.threads='
+      line: "nifi.cluster.node.protocol.threads={{ dn_threads | default(10)  }}"
+    notify: restart nifi
+  
+  - set_fact:
+      dn_maxthreads: "{{ nifi.config.max_threads }}"
+    when: nifi.config.max_threads
+    
+  - name: NIFI OVERLAY (NIFI) | configuring max threads to {{ dn_maxthreads | default(50) }}
+    lineinfile:
+      path: "{{ nifi.install_dir }}/{{ nifi.service_name }}-{{ nifi.version }}/{{ nifi.config_file }}"
+      regexp: '^nifi.cluster.node.protocol.max.threads='
+      line: "nifi.cluster.node.protocol.max.threads={{ dn_maxthreads | default(50)  }}"
+    notify: restart nifi
+
+  - name: NIFI OVERLAY (NIFI) | configuring zookeeper hosts
+    lineinfile:
+      path: "{{ nifi.install_dir }}/{{ nifi.service_name }}-{{ nifi.version }}/{{ nifi.config_file }}"
+      regexp: '^nifi.zookeeper.connect.string='
+      line: "nifi.zookeeper.connect.string={{ groups['zookeeper'] | join(':' + zookeeper.config.port + ',') }}:{{ zookeeper.config.port }}"
+    notify: restart nifi
+
+  - name: NIFI OVERLAY (NIFI) | installing systemd {{ nifi.service_name }}
+    template:
+      src: nifi.service.j2
+      dest: "/etc/systemd/system/{{ nifi.service_name }}.service"
+      mode: 0644
+      owner: root
+      group: root
+    notify:
+      - reload systemd
+      - restart nifi
+    when: 
+      - ansible_distribution_version is version_compare('7', '>=')
+      
+  - name: NIFI OVERLAY (NIFI) | starting {{ nifi.service_name }} by systemd
+    systemd:
+      name: "{{ nifi.service_name }}"
+      enabled: yes
+      state: started
+    when: 
+      - ansible_distribution_version is version_compare('7', '>=')
+  
+  become: yes
+  when:
+    - ansible_distribution == 'CentOS' or ansible_distribution == 'RedHat'

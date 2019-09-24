@@ -1,0 +1,35 @@
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
+#
+# create AWS apache nifi security group rules
+---
+- name: NIFI OVERLAY | creating nifi security group
+  local_action:
+    module: ec2_group
+    name: "dnsg_{{ project }}_nifi_private_external"
+    description: "nifi ingress and unrestricted egress rules (ansible)"
+    vpc_id: "{{ specified_vpc.vpcs.0.id }}"
+    region: "{{ region }}"
+    rules:
+      - proto: tcp
+        from_port: "{{ nifi_port | default(nifi.config.port) }}"
+        to_port: "{{ nifi_port | default(nifi.config.port) }}"
+        cidr_ip: "{{ external_subnet }}"
+      - proto: tcp
+        from_port: "{{ nifi_remote_input_port | default(nifi.config.remote_input_port) }}"
+        to_port: "{{ nifi_remote_input_port | default(nifi.config.remote_input_port) }}"
+        cidr_ip: "{{ external_subnet }}"
+      - proto: tcp
+        from_port: "{{ nifi_cluster_protocol_port | default(nifi.config.cluster_protocol_port) }}"
+        to_port: "{{ nifi_cluster_protocol_port | default(nifi.config.cluster_protocol_port) }}"
+        cidr_ip: "{{ external_subnet }}"
+      - proto: tcp
+        from_port: "{{ nifi_cluster_balance_port | default(nifi.config.cluster_balance_port) }}"
+        to_port: "{{ nifi_cluster_balance_port | default(nifi.config.cluster_balance_port) }}"
+        cidr_ip: "{{ external_subnet }}"
+    rules_egress:
+      # Allow all outbound
+      - proto: all
+        cidr_ip: 0.0.0.0/0
+  when: "'nifi' in groups | default([])"
+  register: sg_nifi_external

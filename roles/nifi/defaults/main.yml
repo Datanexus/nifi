@@ -1,0 +1,23 @@
+# (c) 2016 DataNexus Inc.  All Rights Reserved.
+# Licensed software not for distribution
+#
+nifi:
+  version: '1.9.2'
+  install_dir: /usr/local/src
+  config_file: conf/nifi.properties
+  bootstrap_file: conf/bootstrap.conf
+  service_name: nifi
+  user_service: /usr/local/bin
+  user:
+  group:
+  # environment:
+  config:
+    port: '8080'
+    remote_input_port: '10443'
+    cluster_protocol_port: '11443'
+    cluster_balance_port: '6342'
+    threads:
+    max_threads:
+zookeeper:
+  config:
+    port: '2181'

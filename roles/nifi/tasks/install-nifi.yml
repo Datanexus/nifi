@@ -16,7 +16,8 @@
   
   - name: NIFI OVERLAY | downloading http://apache.mirrors.pair.com/nifi/{{ nifi.version }}/nifi-{{ nifi.version }}-bin.tar.gz
     get_url:
-      url: "http://apache.mirrors.pair.com/nifi/{{ nifi.version }}/nifi-{{ nifi.version }}-bin.tar.gz"
+      # url: "http://apache.mirrors.pair.com/nifi/{{ nifi.version }}/nifi-{{ nifi.version }}-bin.tar.gz"
+      url: "https://archive.apache.org/dist/nifi/1.9.2/nifi-1.9.2-bin.tar.gz"
       dest: /tmp/nifi-bin.tar.gz
       mode: 0600
     

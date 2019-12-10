@@ -9,8 +9,8 @@ nifi:
   bootstrap_file: conf/bootstrap.conf
   service_name: nifi
   user_service: /usr/local/bin
-  user:
-  group:
+  user: nifi
+  group: nifi
   # environment:
   config:
     port: '8080'
@@ -19,6 +19,8 @@ nifi:
     cluster_balance_port: '6342'
     threads:
     max_threads:
+    # this needs to be quoted as a string for concatenation purposes
+    dataDir: "{{ nifi_data_dir | default('/data') }}"
 zookeeper:
   config:
     port: '2181'

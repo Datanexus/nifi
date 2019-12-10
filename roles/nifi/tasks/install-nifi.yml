@@ -4,9 +4,10 @@
 # apache nifi installation: https://nifi.apache.org/docs.html
 ---
 - set_fact:
-    nifi_user: "{{ ansible_user }}"  
+    nifi_user: "{{ nifi.user | default(ansible_user) }}"
+
 - set_fact:
-    nifi_group: "{{ ansible_user }}"
+    nifi_group: "{{ nifi.group | default (ansible_user) }}"
 
 - name: NIFI OVERLAY | checking for {{ nifi.install_dir }}/nifi-{{ nifi.version }}
   stat: path="{{ nifi.install_dir }}/nifi-{{ nifi.version }}"

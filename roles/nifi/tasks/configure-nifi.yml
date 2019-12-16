@@ -15,21 +15,24 @@
 
 - block:
   
-  - name: NIFI OVERLAY (NIFI) | adding {{ nifi_group }} group
-    group:
-      name: "{{ nifi_group }}"
+  - name: NIFI OVERLAY (NIFI) | updating flow configuration to {{ nifi.config.dataDir }}/conf/flow.xml.gz
+    lineinfile:
+      path: "{{ nifi.install_dir }}/{{ nifi.service_name }}-{{ nifi.version }}/{{ nifi.config_file  }}"
+      regexp: '^nifi.flow.configuration.file='
+      line: "nifi.flow.configuration.file={{ nifi.config.dataDir }}/conf/flow.xml.gz"
+    notify: restart nifi
+
+  - name: NIFI OVERLAY (NIFI) | updating configuration archive directory to {{ nifi.config.dataDir }}/conf/archive/
+    lineinfile:
+      path: "{{ nifi.install_dir }}/{{ nifi.service_name }}-{{ nifi.version }}/{{  nifi.config_file }}"
+      regexp: '^nifi.flow.configuration.archive.dir='
+      line: "nifi.flow.configuration.archive.dir={{ nifi.config.dataDir }}/conf/archive/"
+    notify: restart nifi
     
-  - name: NIFI OVERLAY (NIFI) | adding {{ nifi_user }} user
-    user:
-      name: "{{ nifi_user }}"
-      shell: /sbin/nologin
-      home: "{{ nifi.install_dir }}/{{ nifi.service_name }}-{{ nifi.version }}"
-      group: "{{ nifi_group }}"
-         
   # the config ships with embedded zookeeper turned off
   - name: NIFI OVERLAY (NIFI) | disabling embedded zookeeper
     lineinfile:
-      path: "{{ nifi.install_dir }}/{{ nifi.service_name }}-{{ nifi.version }}/{{ nifi.bootstrap_file }}"
+      path: "{{ nifi.install_dir }}/{{ nifi.service_name }}-{{ nifi.version }}/{{ nifi.config_file }}"
       regexp: '^nifi.state.management.embedded.zookeeper.start='
       line: "nifi.state.management.embedded.zookeeper.start=false"
     notify: restart nifi
@@ -139,14 +142,15 @@
     when: 
       - ansible_distribution_version is version_compare('7', '>=')
   
-  - name: NIFI OVERLAY (NIFI) | ensuring {{ nifi.config.dataDir }} exists and has the correct permissions for {{ nifi.service_name }}
-     file:
-       path: "{{ item }}"
-       owner: "{{ nifi_user }}"
-       group: "{{ nifi_group }}"
-       state: directory
-       mode: 0750
-     with_items: "{{ nifi.config.dataDir }}"
+  - name: NIFI OVERLAY (NIFI) | ensuring {{ nifi.config.dataDir }}/conf/archive exists and has the correct permissions for {{ nifi.service_name }}
+    file:
+      path: "{{ item }}"
+      owner: "{{ nifi_user }}"
+      group: "{{ nifi_group }}"
+      state: directory
+      mode: 0750
+    with_items:
+      - "{{ nifi.config.dataDir }}/conf/archive"
     
   # jesus christ -- nifi uses sudo in the nifi.sh startup script so we need to make sure the nifi user has privs
   - name: NIFI OVERLAY (NIFI) | ensuring {{ nifi_user }} has sudo privileges

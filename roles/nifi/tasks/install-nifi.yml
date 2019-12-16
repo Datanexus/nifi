@@ -4,25 +4,45 @@
 # apache nifi installation: https://nifi.apache.org/docs.html
 ---
 - set_fact:
-    nifi_user: "{{ nifi.user | default(ansible_user) }}"
+    nifi_user: "{{ nifi.user}}"
 
 - set_fact:
-    nifi_group: "{{ nifi.group | default (ansible_user) }}"
+    nifi_group: "{{ nifi.group }}"
+
+- block:
+
+  - name: NIFI OVERLAY (NIFI) | adding {{ nifi_group }} group
+    group:
+      name: "{{ nifi_group }}"
+
+  - name: NIFI OVERLAY (NIFI) | adding {{ nifi_user }} user
+    user:
+      name: "{{ nifi_user }}"
+      shell: /sbin/nologin
+      home: "{{ nifi.install_dir }}/{{ nifi.service_name }}-{{ nifi.version }}"
+      group: "{{ nifi_group }}"
+
+  become: yes
+  when: got_root | default('yes')
 
 - name: NIFI OVERLAY | checking for {{ nifi.install_dir }}/nifi-{{ nifi.version }}
   stat: path="{{ nifi.install_dir }}/nifi-{{ nifi.version }}"
   register: existing_package
+  become: yes
+  become_user: "{{ nifi_user }}"
 
 - block:
   
   - name: NIFI OVERLAY | downloading http://apache.mirrors.pair.com/nifi/{{ nifi.version }}/nifi-{{ nifi.version }}-bin.tar.gz
     get_url:
       # url: "http://apache.mirrors.pair.com/nifi/{{ nifi.version }}/nifi-{{ nifi.version }}-bin.tar.gz"
-      url: "https://archive.apache.org/dist/nifi/1.9.2/nifi-1.9.2-bin.tar.gz"
+      url: "https://archive.apache.org/dist/nifi/{{ nifi.version }}/nifi-{{ nifi.version }}-bin.tar.gz"
       dest: /tmp/nifi-bin.tar.gz
       mode: 0600
-    
-  - name: NIFI OVERLAY | installing nifi to {{ nifi.install_dir }}
+    become: yes
+    become_user: "{{ nifi_user }}"
+
+  - name: NIFI OVERLAY | installing /tmp/nifi-bin.tar.gz to {{ nifi.install_dir }}
     unarchive:
       src: /tmp/nifi-bin.tar.gz
       dest: "{{ nifi.install_dir }}"
@@ -30,7 +50,8 @@
       group: "{{ nifi_group }}"
       remote_src: yes
     become: yes
-  
+    # become_user: "{{ nifi_user }}"
+
   - name: NIFI OVERLAY | fixing permissions because sigh @ ansible unarchive
     file:
       path: "{{ nifi.install_dir }}"
